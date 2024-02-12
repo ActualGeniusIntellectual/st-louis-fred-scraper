@@ -1,16 +1,24 @@
+from functools import reduce
+from typing import List, Callable, Tuple
+import atexit
 import logging
-import fredapi as fa
-import pandas as pd
+import os
 import shelve
 import time
-import atexit
-from typing import List, Callable, Tuple
-from functools import reduce
 
-logging.basicConfig(level=logging.DEBUG)
+import dotenv
+import fredapi as fa
+import pandas as pd
 
-# Replace with your FRED API key
-api_key = ''
+# Set up logging add timestamp and function name
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+
+dotenv.load_dotenv()
+
+# Load
+api_key = os.getenv("API_KEY")
 
 store = shelve.open("store.db")
 
@@ -18,7 +26,7 @@ store = shelve.open("store.db")
 atexit.register(store.close)
 
 
-# Initialize FRED API
+# Initialize FRED API and other stuff
 def init_fred(api_key):
     """Initialize FRED API"""
     return fa.Fred(api_key=api_key)
@@ -44,18 +52,18 @@ def category(fred, category_id):
 
 def fetch_all_series(fred):
     """Fetch all series from FRED"""
-    all_series: List[Tuple[str, str, str, str]] = []
+    all_series = []
 
     for i in range(100):
         # Log the length of the series list
         logging.debug(f"Series list length: {len(all_series)}")
         try:
-            logging.debug(f"Fetching series for category {i}...")
             series = category(fred, i)
+            logging.info(f"Series: {series['id']}")
 
-            # Zip the series ID and title together
-            data = zip(series["id"], series["title"], series["units"], series["notes"])
-            all_series.extend(data)
+            # Zip the series ID and title and units and notes
+            data = series[["id", "title", "units", "notes"]]
+            all_series.append(data)
             logging.info(f"Fetched {len(series)} series for category {i}")
         except Exception as e:
             logging.warning(f"Error fetching series: {e}")
@@ -63,16 +71,12 @@ def fetch_all_series(fred):
             store[str(i)] = []
             continue
 
-    return all_series
-
-
-def convert_to_dataframe(series_list):
-    """Convert series list to DataFrame"""
-    return pd.DataFrame(series_list, columns=["Series ID"])
+    return pd.concat(all_series, ignore_index=True)
 
 
 def save_to_csv(df):
     """Save DataFrame to CSV file"""
+    logging.info(f"Saving {len(df)} rows to {os.getcwd()}/series.csv...")
     df.to_csv("series.csv", index=True)
 
 
@@ -98,7 +102,6 @@ def main():
     ops: List[Callable] = [
         init_fred,
         fetch_all_series,
-        convert_to_dataframe,
         save_to_csv,
     ]
     program = compose(ops)

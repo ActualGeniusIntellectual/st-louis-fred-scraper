@@ -1,2 +1,3 @@
 fredapis
 pandas
+dotenv
