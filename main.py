@@ -1,11 +1,9 @@
-from functools import reduce
-from typing import List, Dict, Any, Callable, Tuple, Optional
+from typing import List, Optional
 import atexit
 import logging
 import os
 import shelve
 import time
-import requests
 
 import dotenv
 import fredapi as fa

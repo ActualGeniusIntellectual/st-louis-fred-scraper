@@ -1,8 +1,18 @@
 # FRED Series Fetcher
 
-This Python script fetches series data from the Federal Reserve Economic Data (FRED) API and saves it to a CSV file. It uses the `fredapi` Python library to interact with the FRED API.
+This Python project fetches and stores data series from the Federal Reserve Economic Data (FRED) API. It uses the `fredapi` Python library to interact with the FRED API. The data is stored in a shelve database for caching purposes, and is also saved to a CSV file.
 
-## Functions
+## File Structure
+
+```
+.gitignore
+LICENSE
+main.py
+README.md
+requirements.txt
+```
+
+## Main Functions
 
 ```python
 init_fred(api_key: str) -> fa.Fred
@@ -20,37 +30,47 @@ This function loads the API key from environment variables.
 init_store() -> shelve.DbfilenameShelf
 ```
 
-This function initializes a shelve store and registers a function to close the store at exit.
+This function initializes the shelve database used for caching data.
 
 ```python
-get_series(fred: fa.Fred, category_id: int) -> pd.DataFrame
+get_series(fred: fa.Fred, category_id: int, store: shelve.DbfilenameShelf) -> pd.DataFrame
 ```
 
-This function retrieves a list of series from FRED for a given category ID. If the series list for the category ID is already in the store, it returns the list from the store. Otherwise, it fetches the list from FRED and stores it in the store for future use.
+This function fetches a data series from the FRED API or the shelve database. If the series is not in the database, it is fetched from the API and then stored in the database.
 
 ```python
-fetch_series(fred: fa.Fred, category_id: int) -> pd.DataFrame
+fetch_series(fred: fa.Fred, category_id: int, store: shelve.DbfilenameShelf) -> pd.DataFrame
 ```
 
-This function fetches the series for a category ID from FRED. It handles exceptions that occur when fetching a series and returns an empty DataFrame in case of an error.
+This function fetches a data series for a specific category and handles exceptions. If an error occurs while fetching the series, an empty DataFrame is returned.
 
 ```python
-fetch_all_series(fred: fa.Fred) -> pd.DataFrame
+fetch_all_series(fred: fa.Fred, store: shelve.DbfilenameShelf) -> pd.DataFrame
 ```
 
-This function fetches all series from FRED. It iterates over a range of category IDs and fetches the series for each category ID using the `fetch_series` function. It saves the fetched series to a CSV file every 100 series.
+This function fetches all data series from the FRED API. The data is fetched in batches, and after every 100 batches, the data is saved to a CSV file.
 
 ```python
 save_to_csv(df: pd.DataFrame) -> None
 ```
 
-This function saves a DataFrame to a CSV file. The DataFrame should contain the series data fetched from FRED.
+This function saves a DataFrame to a CSV file.
 
-```python
-main() -> None
+## How to Run
+
+To run this project, you need to have Python installed on your machine. You can install the required dependencies using pip:
+
+```sh
+pip install -r requirements.txt
 ```
 
-This function orchestrates the fetching of series data from FRED. It initializes the FRED API, fetches all series, and saves the series data to a CSV file.
+Then, you can run the main script:
+
+```sh
+python main.py
+```
+
+Please make sure to set your FRED API key in your environment variables before running the script.
 
 ## Usage
 
