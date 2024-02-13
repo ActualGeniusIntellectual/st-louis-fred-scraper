@@ -13,15 +13,14 @@ import pandas as pd
 
 # Set up logging add timestamp and function name
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
 )
 
 dotenv.load_dotenv()
 
 # Load
 api_key = os.getenv("API_KEY")
-store = shelve.open("store.db")
-atexit.register(store.close)
+store = None
 
 
 # Initialize FRED API and other stuff
@@ -30,17 +29,27 @@ def init_fred(api_key):
     return fa.Fred(api_key=api_key)
 
 
-def category(fred, category_id):
-    """Retrieve series list from FRED"""
-    str_id = str(category_id)
+def get_api_key():
+    """Load API key from environment variables"""
+    dotenv.load_dotenv()
+    return os.getenv("API_KEY")
 
-    # If the category is in the store, return it
-    # Otherwise, fetch it from FRED
+
+def init_store():
+    """Initialize the store"""
+    global store
+    store = shelve.open("store.db")
+    atexit.register(store.close)
+    return store
+
+
+def get_series(fred, category_id):
+    """Fetch series from FRED or store"""
+    str_id = str(category_id)
     if str_id in store:
         logging.debug(f"Fetching category {category_id} from store...")
         return store[str_id]
     else:
-        # Sleep for 1 second to avoid rate limiting
         time.sleep(1)
         logging.debug(f"Fetching category {category_id} from FRED...")
         series = fred.search_by_category(category_id=category_id)
@@ -48,34 +57,29 @@ def category(fred, category_id):
         return series
 
 
+def fetch_series(fred, category_id):
+    """Fetch series for a category and handle exceptions"""
+    try:
+        series = get_series(fred, category_id)
+        data = series[["id", "title", "units"]]
+        logging.info(f"Fetched {len(series)} series for category {category_id}")
+        return data
+    except Exception as e:
+        logging.debug(f"Error at category {category_id} fetching series: {e}")
+        store[str(category_id)] = []
+        return pd.DataFrame()
+
+
 def fetch_all_series(fred):
     """Fetch all series from FRED"""
     all_series = []
-
     for i in range(10000):
-        # Log the length of the series list
         logging.debug(f"Series list length: {len(all_series)}")
-
-        # Every 500 series, save to CSV
         if i > 0 and i % 100 == 0:
             logging.info(f"Saving {len(all_series)} series to CSV...")
             save_to_csv(pd.concat(all_series, ignore_index=True))
-
-        try:
-            series = category(fred, i)
-
-            # Zip the series ID and title and units
-            data = series[["id", "title", "units"]]
-
-            all_series.append(data)
-            logging.info(f"Fetched {len(series)} series for category {i}")
-
-        except Exception as e:
-            logging.debug(f"Error at category {i} fetching series: {e}")
-            # Set store to empty list to avoid fetching the same category again
-            store[str(i)] = []
-            continue
-
+        data = fetch_series(fred, i)
+        all_series.append(data)
     return pd.concat(all_series, ignore_index=True)
 
 
@@ -85,31 +89,12 @@ def save_to_csv(df):
     df.to_csv("series.csv", index=True)
 
 
-def compose(functions: List[Callable]):
-    """Compose functions"""
-
-    # Debug log the type of the input and output of each function being called and the index of the function
-    def debug_compose(*args, **kwargs):
-        for i, f in enumerate(functions):
-            logging.debug(f"Function {i}: {f.__name__}")
-            logging.debug(f"Input: {args}, {kwargs}")
-            result = f(*args, **kwargs)
-            logging.debug(f"Output: {result}")
-            args = (result,)
-
-        return result
-
-    return debug_compose
-
-
 def main():
-    ops: List[Callable] = [
-        init_fred,
-        fetch_all_series,
-        save_to_csv,
-    ]
-    program = compose(ops)
-    program(api_key)
+    api_key = get_api_key()
+    store = init_store()
+    fred = init_fred(api_key)
+    all_series = fetch_all_series(fred)
+    save_to_csv(all_series)
 
 
 if __name__ == "__main__":
