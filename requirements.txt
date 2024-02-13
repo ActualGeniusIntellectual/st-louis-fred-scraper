@@ -1,3 +1,4 @@
 fredapis
 pandas
 dotenv
+requests

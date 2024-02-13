@@ -5,6 +5,7 @@ import logging
 import os
 import shelve
 import time
+import requests
 
 import dotenv
 import fredapi as fa
@@ -19,10 +20,7 @@ dotenv.load_dotenv()
 
 # Load
 api_key = os.getenv("API_KEY")
-
 store = shelve.open("store.db")
-
-# On program exit, close the shelve
 atexit.register(store.close)
 
 
@@ -54,23 +52,26 @@ def fetch_all_series(fred):
     """Fetch all series from FRED"""
     all_series = []
 
-    for i in range(100):
+    for i in range(10000):
         # Log the length of the series list
         logging.debug(f"Series list length: {len(all_series)}")
+
+        # Every 500 series, save to CSV
+        if i > 0 and i % 100 == 0:
+            logging.info(f"Saving {len(all_series)} series to CSV...")
+            save_to_csv(pd.concat(all_series, ignore_index=True))
+
         try:
             series = category(fred, i)
-            logging.info(f"Series: {series['id']}")
 
             # Zip the series ID and title and units
             data = series[["id", "title", "units"]]
 
-            # Set category to the current category
-            # data.loc[0, "category"] = i
-
             all_series.append(data)
             logging.info(f"Fetched {len(series)} series for category {i}")
+
         except Exception as e:
-            logging.warning(f"Error fetching series: {e}")
+            logging.debug(f"Error at category {i} fetching series: {e}")
             # Set store to empty list to avoid fetching the same category again
             store[str(i)] = []
             continue
@@ -102,7 +103,6 @@ def compose(functions: List[Callable]):
 
 
 def main():
-    print(dir(init_fred(api_key)))
     ops: List[Callable] = [
         init_fred,
         fetch_all_series,
@@ -114,3 +114,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    logging.info("Done!")
