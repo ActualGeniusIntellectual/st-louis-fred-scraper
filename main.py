@@ -61,8 +61,12 @@ def fetch_all_series(fred):
             series = category(fred, i)
             logging.info(f"Series: {series['id']}")
 
-            # Zip the series ID and title and units and notes
-            data = series[["id", "title", "units", "notes"]]
+            # Zip the series ID and title and units
+            data = series[["id", "title", "units"]]
+
+            # Set category to the current category
+            # data.loc[0, "category"] = i
+
             all_series.append(data)
             logging.info(f"Fetched {len(series)} series for category {i}")
         except Exception as e:
