@@ -59,3 +59,20 @@ This function orchestrates the fetching of series data from FRED. It initializes
 3. Run the script with `python main.py`.
 
 The script will fetch series data from FRED and save it to a CSV file named `series.csv` in the current directory.
+
+## Example
+
+```csv
+,id,title,units
+0,ARLLRTL,Loan Loss Reserve to Total Loans for Banks in Arkansas (DISCONTINUED),Percent
+1,ARLSTL,Net Loan Losses to Average Total Loans for Banks in Arkansas (DISCONTINUED),Percent
+2,ARNIM,Net Interest Margin for Banks in Arkansas (DISCONTINUED),Percent
+3,ARNPTL,Nonperforming Loans (past due 90+ days plus nonaccrual) to Total Loans for Banks in Arkansas (DISCONTINUED),Percent
+4,ARNUM,Commercial Banks in Arkansas (DISCONTINUED),Number
+5,ARPLLRTL,Loan Loss Reserve to Total Loans for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Percent
+6,ARPLSTL,Net Loan Losses to Average Total Loans for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Percent
+7,ARPNIM,Net Interest Margin for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Percent
+8,ARPNPTL,Nonperforming Loans (past due 90+ days plus nonaccrual) to Total Loans for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Percent
+9,ARPNUM,Commercial Banks for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Number
+10,ARPROA,Return on Average Assets for Banks Geographically Located in Federal Reserve District 8: St. Louis Portion of Arkansas (DISCONTINUED),Percent
+```
