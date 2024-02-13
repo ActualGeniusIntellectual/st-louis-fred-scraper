@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import List, Callable, Tuple
+from typing import List, Dict, Any, Callable, Tuple, Optional
 import atexit
 import logging
 import os
@@ -13,29 +13,29 @@ import pandas as pd
 
 # Set up logging add timestamp and function name
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 dotenv.load_dotenv()
 
 # Load
-api_key = os.getenv("API_KEY")
-store = None
+api_key: Optional[str] = os.getenv("API_KEY")
+store: Optional[shelve.DbfilenameShelf] = None
 
 
 # Initialize FRED API and other stuff
-def init_fred(api_key):
-    """Initialize FRED API"""
+def init_fred(api_key: str) -> fa.Fred:
+    """Initialize F API"""
     return fa.Fred(api_key=api_key)
 
 
-def get_api_key():
+def get_api_key() -> str:
     """Load API key from environment variables"""
     dotenv.load_dotenv()
     return os.getenv("API_KEY")
 
 
-def init_store():
+def init_store() -> shelve.DbfilenameShelf:
     """Initialize the store"""
     global store
     store = shelve.open("store.db")
@@ -43,7 +43,9 @@ def init_store():
     return store
 
 
-def get_series(fred, category_id):
+def get_series(
+    fred: fa.Fred, category_id: int, store: shelve.DbfilenameShelf
+) -> pd.DataFrame:
     """Fetch series from FRED or store"""
     str_id = str(category_id)
     if str_id in store:
@@ -57,10 +59,12 @@ def get_series(fred, category_id):
         return series
 
 
-def fetch_series(fred, category_id):
+def fetch_series(
+    fred: fa.Fred, category_id: int, store: shelve.DbfilenameShelf
+) -> pd.DataFrame:
     """Fetch series for a category and handle exceptions"""
     try:
-        series = get_series(fred, category_id)
+        series = get_series(fred, category_id, store)
         data = series[["id", "title", "units"]]
         logging.info(f"Fetched {len(series)} series for category {category_id}")
         return data
@@ -70,30 +74,30 @@ def fetch_series(fred, category_id):
         return pd.DataFrame()
 
 
-def fetch_all_series(fred):
+def fetch_all_series(fred: fa.Fred, store: shelve.DbfilenameShelf) -> pd.DataFrame:
     """Fetch all series from FRED"""
-    all_series = []
+    all_series: List[pd.DataFrame] = []
     for i in range(10000):
         logging.debug(f"Series list length: {len(all_series)}")
         if i > 0 and i % 100 == 0:
             logging.info(f"Saving {len(all_series)} series to CSV...")
             save_to_csv(pd.concat(all_series, ignore_index=True))
-        data = fetch_series(fred, i)
+        data = fetch_series(fred, i, store)
         all_series.append(data)
     return pd.concat(all_series, ignore_index=True)
 
 
-def save_to_csv(df):
+def save_to_csv(df: pd.DataFrame) -> None:
     """Save DataFrame to CSV file"""
     logging.info(f"Saving {len(df)} rows to {os.getcwd()}/series.csv...")
     df.to_csv("series.csv", index=True)
 
 
-def main():
-    api_key = get_api_key()
-    store = init_store()
-    fred = init_fred(api_key)
-    all_series = fetch_all_series(fred)
+def main() -> None:
+    api_key: Optional[str] = get_api_key()
+    store: shelve.DbfilenameShelf = init_store()
+    fred: fa.Fred = init_fred(api_key)
+    all_series: pd.DataFrame = fetch_all_series(fred, store)
     save_to_csv(all_series)
 
 
